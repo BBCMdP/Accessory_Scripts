@@ -23,6 +23,7 @@ parser.add_argument('-i', default='input_fasta.faa', help='name of the aligned F
 parser.add_argument('-o', default='grouped_fasta.faa', help='name of the output, grouped, FASTA file')
 parser.add_argument('-sfo', default='grouped_fasta_SDPfox_output', help='name of the SDPfox output')
 parser.add_argument('-ref', default='ref_seq', help='name of the reference sequence for SDPfox')
+parser.add_argument('-rs', default='no', help='Run SDPfox: yes/no')
 parser.add_argument('-clean', default='no', help='Remove alignment from SDPfox output: yes/no')
 
 args = vars(parser.parse_args())
@@ -82,17 +83,21 @@ grouped_file = str(args['o'])
 sdpfox_output  = str(args['sfo'])
 ref = str(args['ref'])
 clean = str(args['clean']) 
+rs = str(args['rs'])
 
 arguments.append(faa_file)
 arguments.append(grouped_file)
 arguments.append(sdpfox_output)
 arguments.append(ref)
 arguments.append(clean)
+arguments.append(rs)
 
 txt_folder = './'  # Replace with the folder containing your .txt files
 
 process_sequences(txt_folder, faa_file, grouped_file)
-SDPfoxer(grouped_file,ref,sdpfox_output)
 
-if clean == 'yes':
-   os.system("sed -i '/Alignment:/,$d' " + str(sdpfox_output))
+if rs == 'yes':
+    SDPfoxer(grouped_file,ref,sdpfox_output)
+
+    if clean == 'yes':
+        os.system("sed -i '/Alignment:/,$d' " + str(sdpfox_output))
