@@ -18,3 +18,7 @@ Finally, the script will execute SDPfox (`-m sdplight`) with a reference sequenc
 The SDPfox output file prints the full alignment at the end: to remove it use `-clean yes`. This is useful if the file will be used
 for MICS script later on.
 
+## bad_seqs_remover
+comes from bad_seqs_v03.py.
+Allows to parse a fasta file (aligned or not) and remove sequences with non-IUPAC characters. 
+
