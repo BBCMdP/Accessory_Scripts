@@ -71,8 +71,9 @@ for item in dirs_files:
                     with open(source, 'r') as src_file, open(target, 'w') as tgt_file:
                         lines = src_file.readlines()
                         # Write line 8 and lines 40 to 48 to the target file
-                        tgt_file.write(lines[7])  # Line 8
-                        tgt_file.writelines(lines[39:48])  # Lines 40 to 48
+                        tgt_file.write(lines[7])  # Input name
+                        tgt_file.write(lines[45])  # Total Sequences
+                        tgt_file.writelines(lines[47:53])  # Modules data
                 except IOError as e:
                     print(f"Unable to copy file {source} to {target}. Reason: {e}")
                 except:
