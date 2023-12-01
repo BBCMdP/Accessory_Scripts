@@ -1,6 +1,3 @@
-# Extract Seqrutinator Results_*.faa and Logs' important lines to parent folder
-# Made by GitHub Copilot with the inputs of Lucas Micheli
-
 import os
 import shutil
 
@@ -70,10 +67,43 @@ for item in dirs_files:
                     # Open the source file and the target file
                     with open(source, 'r') as src_file, open(target, 'w') as tgt_file:
                         lines = src_file.readlines()
-                        # Write line 8 and lines 40 to 48 to the target file
-                        tgt_file.write(lines[7])  # Input name
-                        tgt_file.write(lines[45])  # Total Sequences
-                        tgt_file.writelines(lines[47:53])  # Modules data
+                        # Copy fasta name
+                        tgt_file.write(lines[7])
+                        # Find the line containing 'INFO - Total Sequences'
+                        for line in lines:
+                            if 'INFO - Total Sequences' in line:
+                                tgt_file.write(line)
+                                break
+                        # Find the line containing 'INFO - SSR'
+                        for line in lines:
+                            if 'INFO - SSR' in line:
+                                tgt_file.write(line)
+                                break
+                        # Find the line containing 'INFO - NHHR'
+                        for line in lines:
+                            if 'INFO - NHHR' in line:
+                                tgt_file.write(line)
+                                break
+                        # Find the line containing 'INFO - GIR'
+                        for line in lines:
+                            if 'INFO - GIR' in line:
+                                tgt_file.write(line)
+                                break
+                        # Find the line containing 'INFO - CGSR'
+                        for line in lines:
+                            if 'INFO - CGSR' in line:
+                                tgt_file.write(line)
+                                break
+                        # Find the line containing 'INFO - PR'
+                        for line in lines:
+                            if 'INFO - PR' in line:
+                                tgt_file.write(line)
+                                break
+                        # Find the line containing 'INFO - RESULT'
+                        for line in lines:
+                            if 'INFO - RESULT' in line:
+                                tgt_file.write(line)
+                                break
                 except IOError as e:
                     print(f"Unable to copy file {source} to {target}. Reason: {e}")
                 except:
