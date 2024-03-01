@@ -1,5 +1,8 @@
 # Accessory_Scripts
 
+## remove_gap
+For a list of aligned sequences (by default, with extension .faa), the script will convert each file in an unaligned, .fsa, file (by simply removing all gaps "-" in each sequence. 
+
 ## reference_gap_remover
 Given a MSA and a ref seq, the script will remove all columns in which the reference has a gap. 
 The output will be a trimmed MSA. It's useful to generate trim an MSA with > 5000 columns, which is incompatible with SDPfox.
