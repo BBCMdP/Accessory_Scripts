@@ -3,6 +3,9 @@
 #################################################################
 #   Modified by Fernando Villarreal 04/11/2022                  #
 #   Edited for output filenames and compatibility with python 3 #
+#   v3 2024-03-08 15:47:09 FV                                   # 
+#   edited to deal with spaces in sequence header               #
+#   line 32: seq_record.description replaced seq_record.id      # 
 #################################################################
 
 import argparse
@@ -26,7 +29,7 @@ def seqs_extractor(file_fasta):
     names = []
     seqs = []
     for seq_record in SeqIO.parse(file_fasta, "fasta"):
-        names.append(seq_record.id)
+        names.append(seq_record.description)
         seqs.append(seq_record.seq)
     return names, seqs
 
