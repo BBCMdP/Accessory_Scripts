@@ -1,5 +1,8 @@
 # Accessory_Scripts
 
+## remove_gap
+For a list of aligned sequences (by default, with extension .faa), the script will convert each file in an unaligned, .fsa, file (by simply removing all gaps "-" in each sequence. 
+
 ## reference_gap_remover
 Given a MSA and a ref seq, the script will remove all columns in which the reference has a gap. 
 The output will be a trimmed MSA. It's useful to generate trim an MSA with > 5000 columns, which is incompatible with SDPfox.
@@ -22,3 +25,36 @@ for MICS script later on.
 comes from bad_seqs_v03.py.
 Allows to parse a fasta file (aligned or not) and remove sequences with non-IUPAC characters. 
 
+## tree_painter
+A script useful to automatically color the branches of a given tree (in newick format), based on text files (one file per group). In the working folder, one must place the script, the tree and a list of files (`.txt` extension is mandatory).
+The files should contain endline separated lists of the entries in the tree. The functions that perform the task (phylogeny_tree and paint_tree) were based on HMMERCTTER's functions.
+The function to sort and read the .txt files was created with ChatGPT's assistance. The outputs will be the colored tree in nexml and svg formats.
+Dendroscope (install and put in PATH) and xvfb (Synaptic) are required. Python modules natsort, biopython and numpy are also required.
+Example
+```
+user ~/Desktop/test/tree_painter$ find .                                        
+.
+./my_phylogeny.tree
+./tree_painter.py
+./G1.txt
+./G2.txt
+./G3.txt
+```
+Run: `python3 tree_painter.py -t my_phylogeny.tree`
+
+The result is: 
+```
+user ~/Desktop/test/tree_painter$ find .                                        
+.
+./my_phylogeny_tree.nexml
+./my_phylogeny_tree.svg
+./my_phylogeny.tree
+./tree_painter.py
+./G1.txt
+./G2.txt
+./G3.txt
+```
+
+![image](https://github.com/BBCMdP/Accessory_Scripts/assets/45858786/e1aadf82-c100-4bb8-af8a-668846be7c0a)
+
+The nexml file can be opened in Dendroscope.
