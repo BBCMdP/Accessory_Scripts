@@ -1,5 +1,17 @@
 # Accessory_Scripts
 
+## group_taxonomy
+
+version omega, still buggy. Almost no error checks yet. 
+
+Script to analyze taxonomic composition of groups (for example generated with HMMERCTTER). Requires a list of .txt files (one file per group), and a .tsv file containing at least columns seq (the sequence ID) and taxid (the taxid number at species level corresponding to the sequence). 
+The script requires packages ete3, pandas and plotly. (the first time, ete3 needs to download the taxonomy from NCBI)
+
+For example: 
+`python3 group_taxonomy.py -i training.tsv --treemap y --heatmap y --hmap_rank order --hmap_tree training.tree`
+
+will read the training.tsv file. From it, it will obtain a table with complete taxonomy for each sequence using ranks @taxallnomy (http://bioinfo.icb.ufmg.br/taxallnomy/). Two tsv outputs are created: _taxonomy.tsv includes all species identified in the dataset with the complete taxonomical information, and _fulltax.tsv has the complete information for each sequence (including the group to which it belongs). With `--treemap y`, the script uses plotly to create a hierarchical treemap summarizing the information in the table (coloring corresponds to `--rank_level` (default order)). `--heatmap y` activates the creation of a heatmap, which will show incidences (number of sequences) per taxa (default species, modifiable with `--hmap_rank`) per group. To define a tree with the phylogenetic relationships of the groups, the script requires a phylogeny of the dataset (indicated by `--hmap_tree`). 
+
 ## remove_gap
 For a list of aligned sequences (by default, with extension .faa), the script will convert each file in an unaligned, .fsa, file (by simply removing all gaps "-" in each sequence. 
 
