@@ -169,28 +169,37 @@ def taxid2dict(in_seq_tax,taxid_list):
         # Add the taxonomic information to the taxonomic dictionary
         taxonomic_dict[taxid] = taxonomic_info
     return taxonomic_dict
-
-def tree_by_taxa(rank_level, taxid_list): 
+def tree_by_taxa(rank_level, table_tsv,input_file): 
     """
     Required for heatmap.
-    Generate a taxonomic tree at indicated taxonomic level (based on NCBI Taxonomy).
+    Generate a taxonomic tree at indicated taxonomic level (based on NCBI Taxonomy and tsv generated before).
     Accepted levels are species, genus, subfamily, family, order, superorder, subclass, class, phylum, kingdom
     Uses also taxallnomy to retrieve full taxonomic data.
-    The taxid_list correspond to the list of taxids associated to the sequences in the set (taxid @ species level). Calculated by get_unique_taxids
     """
 
     ncbi = NCBITaxa()
-    # Get complete tree at rank_level
-    tree = ncbi.get_topology(taxid_list, intermediate_nodes=True, rank_limit=rank_level) 
-    tree.ladderize()
-    outtree = 'tree_by_' + rank_level + '_taxid.tree'
-    tree.write(format=1, outfile=outtree)
-
+    
+    #Read the TSV table and extract the unique values associated to the column rank_level
+    df = pd.read_csv(table_tsv, sep='\t')
+    scinames = df[rank_level].unique().tolist()
+    
+    taxfrname = []
+    
+    # Get complete tree at the rank level indicated
+    for name in scinames:
+        txid = ncbi.get_name_translator([name])
+        taxfrname.extend(txid.get(name, []))
+    
+    tree_full = ncbi.get_topology(taxfrname, intermediate_nodes=True)
+    tree_full.ladderize()
+    outtree = input_file + '_taxa_tree_' + rank_level + '.tree'
+    tree_full.write(format=1, outfile=outtree)
+    
     leaves = []
     ranks = []   #once is populated, it will have the scientific names at rank indicated, sorted as in the tree
-
+    
     #We need to match the taxids in the rank indicated with the corresponding scientific name.
-    for leaf in tree:
+    for leaf in tree_full:
         # URL template with the txid parameter, using the API provided  @taxallnomy
         url_template = "http://bioinfo.icb.ufmg.br/cgi-bin/taxallnomy/taxallnomy_multi.pl?txid={}&rank=common"
         # Construct the complete URL
@@ -213,30 +222,32 @@ def tree_by_taxa(rank_level, taxid_list):
             leaves.append(leaf.name.split('-')[-1])
         else:
             print("Failed to fetch data from the URL")
-
+    
     with open(outtree, 'r') as file:
         line = file.readline()
-
+    
     # Replace the target value in the line
     for i, leaf in enumerate(leaves):
         # Replace the target leaf value with the corresponding rank
         line = line.replace(leaf, ranks[i])
-
+    
     # Write the modified line back to the file
     with open(outtree, 'w') as file:
         file.write(line)
-        
+    #print(f'this is leaves: {leaves}')
+    #print(f'this is ranks: {ranks}')
     return ranks
 
-def tree_by_group(tree,group_refs,group_names):
+def tree_by_group(tree,group_refs,group_names,input_file):
     #read in Phylogenetic Tree
     tree_group_in = Tree(tree)
     #with this we make a pruned tree with only the reference per group. To be used as column sorter in heatmap
     tree_group_in.prune(group_refs)
     tree_group_in.ladderize()
-    tree_group_in.write(format=5, outfile="groupref_tree.tree")
+    outtree = input_file + '_groupref_tree.tree'
+    tree_group_in.write(format=5, outfile=outtree)
 
-    with open('groupref_tree.tree', 'r') as file:
+    with open(outtree, 'r') as file:
         content = file.read()
 
     # Replace items from ref_by_group with corresponding items from name_group
@@ -244,23 +255,24 @@ def tree_by_group(tree,group_refs,group_names):
         content = content.replace(ref, name)
 
     # Write the modified contents back to the file
-    with open('groupref_tree.tree', 'w') as file:
+    with open(outtree, 'w') as file:
         file.write(content)
         
-    tree_group_out = Tree('groupref_tree.tree')
+    tree_group_out = Tree(outtree)
     tree_group_leaves = tree_group_out.get_leaves()
     tree_group_leaves_sort = [node.name for node in tree_group_leaves]
 
     return tree_group_leaves_sort
 
-def heatmap_v1(tax_level,tsv_file,group_leaf,tax_leaf):
-    # Read the TSV file into a Pandas DataFrame
+def heatmap_v1(tax_level,tsv_file,group_leaf,tax_leaf,input_file):
+    # Add Total to column and row
     group_leaf.append('Total')
     tax_leaf.append('Total')
     
+    # Read the TSV file into a Pandas DataFrame
     df = pd.read_csv(tsv_file, sep='\t')
 
-    # Group by "group" and "order", and count occurrences
+    # Group by "group" and "tax_level", and count occurrences
     grouped = df.groupby(['group', tax_level]).size().unstack(fill_value=0)
 
     # Ensure all taxa are included, even if they have zero occurrences
@@ -272,13 +284,17 @@ def heatmap_v1(tax_level,tsv_file,group_leaf,tax_leaf):
     grouped.loc['Total'] = grouped.sum()
     grouped.sort_values(by='group', key=lambda column: column.map(lambda e: group_leaf.index(e)), inplace=True)
     grouped_T = grouped.T
-    grouped_T.sort_values(by=tax_level, key=lambda column: column.map(lambda e: tax_leaf.index(e)), inplace=True)
+    try: 
+        grouped_T.sort_values(by=tax_level, key=lambda column: column.map(lambda e: tax_leaf.index(e)), inplace=True)
+    except ValueError as e:
+        missing = str(e).split("'")[1]
+        print(f'Warning! {missing} is not found in the tree at {tax_level} rank. This is likely due to an inconsistency in NCBI taxonomy db. Check!')
+    grouped = grouped_T.T
+    
+    # Save the resulting DataFrame to a new tsv file
+    grouped.to_csv(input_file  + '_seqs_per_' + tax_level +'_and_group.tsv', sep='\t')
 
-    # Print or save the resulting DataFrame
-    # If you want to save it to a new TSV file
-    grouped_T.to_csv('count_seqs_per_' + tax_level +'_and_group.tsv', sep='\t')
-
-    fig = px.imshow(grouped_T,
+    fig = px.imshow(grouped,
                     text_auto=True,
                     color_continuous_scale=[[0, 'white'], [0.05, 'yellow'], [0.25, 'purple'], [1, 'black']]
                 )
@@ -292,7 +308,7 @@ parser.add_argument("--treemap", default='n', help="Plot the taxonomic tree map 
 parser.add_argument("--rank_color", default='order', help="Rank to color the tree map: Use group, class, superorder, order (default), family, subfamily or species", required=False)
 parser.add_argument("--heatmap", default='n', help="Plot the heatmap for incidences by group and taxonomic rank", required=False)
 parser.add_argument("--hmap_tree", default='training.tree', help="Phylogenetic tree of sequences in complete dataset (newick format required)", required=False)
-parser.add_argument("--hmap_rank", default='species', help="Taxonomic level to show the results in the heatmap: Use group, class, superorder, order, family, subfamily or species (default)", required=False)
+parser.add_argument("--hmap_rank", default='genus', help="Taxonomic level to show the results in the heatmap: Use class, superorder, order, family, subfamily, genus (default) or species", required=False)
 
 args = vars(parser.parse_args())
 in_table = str(args["i"])
@@ -344,9 +360,10 @@ if treemap == 'y':
     plt.offline.plot(fig_treemap, filename = in_filename + '_treemap.html', auto_open=False)
 
 if heatmap == 'y':
-    taxon_leaf_name = tree_by_taxa(hmap_rank, unique_taxids)
-    group_leaf_name = tree_by_group(hmap_tree, group_ref, group_name)
-    heatmap_v1(hmap_rank,output_file,group_leaf_name,taxon_leaf_name)
+    taxon_leaf_name = tree_by_taxa(hmap_rank, output_file,in_filename)
+    #print(taxon_leaf_name)
+    group_leaf_name = tree_by_group(hmap_tree, group_ref, group_name,in_filename)
+    heatmap_v1(hmap_rank,output_file,group_leaf_name,taxon_leaf_name,in_filename)
 
 
 
