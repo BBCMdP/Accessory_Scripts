@@ -64,12 +64,14 @@ def assign_taxonomic_info(file,group_seqs, all_seqs, all_taxids, taxonomic_dict)
             family = tax_info.get('family', '')
             order = tax_info.get('order', '')
             superorder =  tax_info.get('superorder', '')
+            cohort = tax_info.get('cohort', '')
+            infraclass = tax_info.get('infraclass', '')
             subclass = tax_info.get('subclass', '')
             class_ = tax_info.get('class', '')
             phylum = tax_info.get('phylum', '')
             kingdom = tax_info.get('kingdom', '')
                         
-            table_data.append([group, seq, str(taxid), species, genus, subfamily, family, order, superorder, subclass, class_, phylum, kingdom])
+            table_data.append([group, seq, str(taxid), species, genus, subfamily, family, order, superorder, cohort, infraclass, subclass, class_, phylum, kingdom])
         
         return table_data
 
@@ -84,7 +86,7 @@ def write_tabular_output(table_data, output_file):
         with open(output_file, 'a' if not is_empty else 'w') as file:
             # Write the header only if the file is empty
             if is_empty:
-                header = ['group','sequence', 'taxid', 'species', 'genus', 'subfamily', 'family', 'order', 'superorder', 'subclass', 'class', 'phylum', 'kingdom']
+                header = ['group','sequence', 'taxid', 'species', 'genus', 'subfamily', 'family', 'order', 'superorder', 'cohort', 'infraclass', 'subclass', 'class', 'phylum', 'kingdom']
                 file.write('\t'.join(header) + '\n')
         
             # Write the data
@@ -99,7 +101,7 @@ def taxid2dict(in_seq_tax,taxid_list):
     txid_param = ','.join(map(str, taxid_list))
 
     # URL template with the txid parameter, using the API provided  @taxallnomy
-    url_template = "http://bioinfo.icb.ufmg.br/cgi-bin/taxallnomy/taxallnomy_multi.pl?txid={}&rank=common"
+    url_template = "http://bioinfo.icb.ufmg.br/cgi-bin/taxallnomy/taxallnomy_multi.pl?txid={}&rank=all"
 
     # Construct the complete URL
     url = url_template.format(txid_param)
@@ -118,8 +120,36 @@ def taxid2dict(in_seq_tax,taxid_list):
         data = '\n'.join(lines)
         # Read the data into a pandas DataFrame
         df = pd.read_csv(StringIO(data), sep='\t')
-        del df['subgenus']
-        del df['subspecies']
+        del df ['superkingdom']
+        del df ['subkingdom']
+        del df ['superphylum']
+        del df ['subphylum']
+        del df ['infraphylum']
+        del df ['superclass']
+        del df ['subcohort']
+        del df ['suborder']
+        del df ['infraorder']
+        del df ['parvorder']
+        del df ['superfamily']
+        del df ['tribe']
+        del df ['subtribe']
+        del df ['subgenus']
+        del df ['section']
+        del df ['subsection']
+        del df ['series']
+        del df ['subseries']
+        del df ['species_group']
+        del df ['species_subgroup']
+        del df ['forma_specialis']
+        del df ['subspecies']
+        del df ['varietas']
+        del df ['subvariety']
+        del df ['forma']
+        del df ['serogroup']
+        del df ['serotype']
+        del df ['strain']
+        del df ['isolate']
+
             
         for col in df.columns:
             # Iterate over each row in the column
@@ -145,6 +175,8 @@ def taxid2dict(in_seq_tax,taxid_list):
         phylum = row['phylum']
         class_ = row['class']
         subclass = row['subclass']
+        infraclass = row['infraclass']
+        cohort=row['cohort']
         superorder = row['superorder']
         order = row['order']
         family = row['family']
@@ -158,6 +190,8 @@ def taxid2dict(in_seq_tax,taxid_list):
             'phylum': phylum,
             'class': class_,
             'subclass': subclass,
+            'infraclass': infraclass,
+            'cohort':cohort,
             'superorder': superorder,
             'order': order,
             'family': family,
@@ -169,7 +203,7 @@ def taxid2dict(in_seq_tax,taxid_list):
         # Add the taxonomic information to the taxonomic dictionary
         taxonomic_dict[taxid] = taxonomic_info
     return taxonomic_dict
-def tree_by_taxa(rank_level, table_tsv,input_file): 
+def tree_by_taxa(rank_level, table_tsv): 
     """
     Required for heatmap.
     Generate a taxonomic tree at indicated taxonomic level (based on NCBI Taxonomy and tsv generated before).
@@ -192,7 +226,7 @@ def tree_by_taxa(rank_level, table_tsv,input_file):
     
     tree_full = ncbi.get_topology(taxfrname, intermediate_nodes=True)
     tree_full.ladderize()
-    outtree = input_file + '_taxa_tree_' + rank_level + '.tree'
+    outtree = 'taxa_tree_' + rank_level + '.tree'
     tree_full.write(format=1, outfile=outtree)
     
     leaves = []
@@ -238,16 +272,15 @@ def tree_by_taxa(rank_level, table_tsv,input_file):
     #print(f'this is ranks: {ranks}')
     return ranks
 
-def tree_by_group(tree,group_refs,group_names,input_file):
+def tree_by_group(tree,group_refs,group_names):
     #read in Phylogenetic Tree
     tree_group_in = Tree(tree)
     #with this we make a pruned tree with only the reference per group. To be used as column sorter in heatmap
     tree_group_in.prune(group_refs)
     tree_group_in.ladderize()
-    outtree = input_file + '_groupref_tree.tree'
-    tree_group_in.write(format=5, outfile=outtree)
+    tree_group_in.write(format=5, outfile="groupref_tree.tree")
 
-    with open(outtree, 'r') as file:
+    with open('groupref_tree.tree', 'r') as file:
         content = file.read()
 
     # Replace items from ref_by_group with corresponding items from name_group
@@ -255,16 +288,16 @@ def tree_by_group(tree,group_refs,group_names,input_file):
         content = content.replace(ref, name)
 
     # Write the modified contents back to the file
-    with open(outtree, 'w') as file:
+    with open('groupref_tree.tree', 'w') as file:
         file.write(content)
         
-    tree_group_out = Tree(outtree)
+    tree_group_out = Tree('groupref_tree.tree')
     tree_group_leaves = tree_group_out.get_leaves()
     tree_group_leaves_sort = [node.name for node in tree_group_leaves]
 
     return tree_group_leaves_sort
 
-def heatmap_v1(tax_level,tsv_file,group_leaf,tax_leaf,input_file):
+def heatmap_v1(tax_level,tsv_file,group_leaf,tax_leaf):
     # Add Total to column and row
     group_leaf.append('Total')
     tax_leaf.append('Total')
@@ -292,7 +325,7 @@ def heatmap_v1(tax_level,tsv_file,group_leaf,tax_leaf,input_file):
     grouped = grouped_T.T
     
     # Save the resulting DataFrame to a new tsv file
-    grouped.to_csv(input_file  + '_seqs_per_' + tax_level +'_and_group.tsv', sep='\t')
+    grouped.to_csv('seqs_per_' + tax_level +'_and_group.tsv', sep='\t')
 
     fig = px.imshow(grouped,
                     text_auto=True,
@@ -305,15 +338,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", help="Input file containing sequences and taxids (tab separated values). Must have columns 'seq' and 'taxids'", required=True)
 parser.add_argument("--ext", default='*.txt', help="Extension of files containing groups sequences. All files with the extension will be processed", required=False)
 parser.add_argument("--treemap", default='n', help="Plot the taxonomic tree map for each group (use y or n)", required=False)
+parser.add_argument("--treemap_ranks",default='ki,ph,cl,sc,ic,co,so,or,fa,sf,ge,sp', help="Taxonomic ranks to be provided. Enter a comma separated list with codes as per: ki (kingdom), ph (phylum), cl (class), sc (subclass), ic (infraclass), co (cohort), so (superorder), or (order), fa (family), sf (subfamily), ge (genus), sp (species)")
 parser.add_argument("--rank_color", default='order', help="Rank to color the tree map: Use group, class, superorder, order (default), family, subfamily or species", required=False)
 parser.add_argument("--heatmap", default='n', help="Plot the heatmap for incidences by group and taxonomic rank", required=False)
 parser.add_argument("--hmap_tree", default='training.tree', help="Phylogenetic tree of sequences in complete dataset (newick format required)", required=False)
-parser.add_argument("--hmap_rank", default='genus', help="Taxonomic level to show the results in the heatmap: Use class, superorder, order, family, subfamily, genus (default) or species", required=False)
+parser.add_argument("--hmap_rank", default='genus', help="Taxonomic level to show the results in the heatmap: Use kingdom, phylum, class, subclass, infraclass, cohort, superorder, order, family, subfamily, genus (default) or species", required=False)
 
 args = vars(parser.parse_args())
 in_table = str(args["i"])
 ext = str(args["ext"])
 treemap = str(args["treemap"])
+tm_ranks = str(args["treemap_ranks"])
 rank_color = str(args["rank_color"])
 heatmap = str(args["heatmap"])
 hmap_tree = str(args["hmap_tree"])
@@ -347,10 +382,47 @@ for file in list_of_files:
     table_data = assign_taxonomic_info(file,group_seqs, all_seqs, all_taxids, taxonomic_dict)
     write_tabular_output(table_data, output_file)  
 
+# Define the complete list of possible hierarchical levels in the correct order for treemap ranks
+complete_path = ['group', 'kingdom', 'phylum', 'class', 'subclass', 'infraclass', 
+                 'cohort', 'superorder', 'order', 'family', 'subfamily', 'genus', 'species']
+
+ranks_treemap = tm_ranks.split(',')
 
 if treemap == 'y':
+    full_ranks = ['group', 'kingdom', 'phylum', 'class', 'subclass', 'infraclass', 'cohort', 'superorder', 'order', 'family', 'subfamily', 'genus', 'species']
+    code_to_rank = {
+    'ki': 'kingdom',
+    'ph': 'phylum',
+    'cl': 'class',
+    'sc': 'subclass',
+    'ic': 'infraclass',
+    'co': 'cohort',
+    'so': 'superorder',
+    'or': 'order',
+    'fa': 'family',
+    'sf': 'subfamily',
+    'ge': 'genus',
+    'sp': 'species'
+    }
+    ranks_treemap = tm_ranks.split(',')
+    ranks = full_ranks.copy()
+    ranks_to_keep = []
+
+    # Initialize an empty list to store the final path
+    for code in ranks_treemap:
+        rank = code_to_rank.get(code)
+        ranks_to_keep.append(rank)
+
+    rnkstmap = full_ranks.copy()
+
+    # Iterate through the complete path list
+    for level in full_ranks[1:]:
+        # If the level is not in the list of codes to keep, remove it from the path list
+        if level not in ranks_to_keep:
+            rnkstmap.remove(level)
+
     df = pd.read_csv(output_file, sep='\t')
-    fig_treemap = px.treemap(df, path=['group', 'class', 'subclass', 'superorder', 'order', 'family', 'subfamily','species'], 
+    fig_treemap = px.treemap(df, path=rnkstmap, 
                     color=rank_color,
                     color_discrete_map={'group':'darkgray',
                                         '(?)':'lightgray'})
@@ -360,11 +432,7 @@ if treemap == 'y':
     plt.offline.plot(fig_treemap, filename = in_filename + '_treemap.html', auto_open=False)
 
 if heatmap == 'y':
-    taxon_leaf_name = tree_by_taxa(hmap_rank, output_file,in_filename)
+    taxon_leaf_name = tree_by_taxa(hmap_rank, output_file)
     #print(taxon_leaf_name)
-    group_leaf_name = tree_by_group(hmap_tree, group_ref, group_name,in_filename)
-    heatmap_v1(hmap_rank,output_file,group_leaf_name,taxon_leaf_name,in_filename)
-
-
-
-
+    group_leaf_name = tree_by_group(hmap_tree, group_ref, group_name)
+    heatmap_v1(hmap_rank,output_file,group_leaf_name,taxon_leaf_name)
